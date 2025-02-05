@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sketch Vision | AI Art Generator</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <style>
+      :root {
+        --border: 2px solid #fff;
+        --spacing: 2rem;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Helvetica", sans-serif;
+        background: #000;
+        color: #fff;
+        padding: var(--spacing);
+        line-height: 1.5;
+      }
+
+      textarea {
+        width: 100%;
+        height: 200px;
+        background: #000;
+        color: #fff;
+        border: var(--border);
+        font-family: "Courier", monospace;
+        font-size: 1rem;
+        padding: 1rem;
+        margin: var(--spacing) 0;
+        resize: vertical;
+      }
+
+      #status {
+        padding: 1rem;
+        border: var(--border);
+        margin: var(--spacing) 0;
+      }
+
+      .success {
+        border-color: #0f0;
+      }
+      .error {
+        border-color: #f00;
+      }
+
+      .image-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: var(--spacing);
+        margin: var(--spacing) 0;
+      }
+
+      .image-container {
+        position: relative;
+        border: var(--border);
+        padding: 1rem;
+        min-height: 200px;
+        background: #111;
+      }
+
+      .image-container::before {
+        content: "Loading...";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #fff;
+        opacity: 0.5;
+      }
+
+      .image-container.loaded::before {
+        display: none;
+      }
+
+      .image-container.error::before {
+        content: "Failed to load image";
+        color: #f00;
+      }
+
+      .image-container img {
+        width: 100%;
+        height: auto;
+        display: block;
+        border: var(--border);
+      }
+
+      .image-number {
+        position: absolute;
+        top: 0;
+        left: 0;
+        background: #000;
+        padding: 0.5rem 1rem;
+        border-right: var(--border);
+        border-bottom: var(--border);
+        font-weight: bold;
+      }
+
+      .collage-container {
+        margin-top: var(--spacing);
+        border-top: var(--border);
+        padding-top: var(--spacing);
+      }
+
+      .collage-container img {
+        width: 100%;
+        height: auto;
+        border: var(--border);
+      }
+
+      h1,
+      h2 {
+        font-size: 3rem;
+        text-transform: uppercase;
+        letter-spacing: -1px;
+        margin: var(--spacing) 0;
+        border-bottom: var(--border);
+        padding-bottom: 1rem;
+      }
+
+      h2 {
+        font-size: 2rem;
+      }
+
+      button {
+        width: 100%;
+        padding: 1rem;
+        font-size: 1.25rem;
+        background: #fff;
+        color: #000;
+        border: none;
+        cursor: pointer;
+        text-transform: uppercase;
+        font-weight: bold;
+        transition: all 0.2s;
+      }
+
+      button:hover {
+        background: #000;
+        color: #fff;
+        outline: var(--border);
+      }
+
+      p {
+        font-size: 1rem;
+      }
+
+      @media (max-width: 768px) {
+        :root {
+          --spacing: 1rem;
+        }
+
+        h1 {
+          font-size: 2rem;
+        }
+        h2 {
+          font-size: 1.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Sketch Vision</h1>
+    <textarea
+      id="promptsInput"
+      placeholder='Enter your prompts (one per line) or JSON format:
+
+a beautiful sunset over mountains
+a majestic lion
+a serene lake with reflections
+
+-- OR --
+
+[
+    {"prompt": "a beautiful sunset over mountains"},
+    {"prompt": "a majestic lion"},
+    {"prompt": "a serene lake with reflections"}
+]'
+    ></textarea>
+    <button onclick="generateImages()">Generate Images</button>
+    <div id="status"></div>
+
+    <div id="imagesContainer" style="display: none">
+      <h2>Generated Images</h2>
+      <div id="imageGrid" class="image-grid"></div>
+
+      <div class="collage-container">
+        <h2>Collage</h2>
+        <img id="collage" />
+      </div>
+    </div>
+
+    <script>
+      async function generateImages() {
+        const statusDiv = document.getElementById("status");
+        const imagesContainer = document.getElementById("imagesContainer");
+        const imageGrid = document.getElementById("imageGrid");
+        const collageImg = document.getElementById("collage");
+
+        try {
+          const promptsText = document
+            .getElementById("promptsInput")
+            .value.trim();
+          let prompts;
+
+          // Try parsing as JSON first
+          try {
+            prompts = JSON.parse(promptsText);
+          } catch {
+            // If not JSON, treat as line-by-line text
+            prompts = promptsText
+              .split("\n")
+              .map((line) => line.trim())
+              .filter((line) => line && !line.startsWith("--")) // Skip empty lines and separator
+              .map((prompt) => ({ prompt }));
+          }
+
+          // Validate prompts
+          if (!Array.isArray(prompts) || prompts.length === 0) {
+            throw new Error("Please enter at least one prompt");
+          }
+
+          if (!prompts.every((p) => p.prompt && typeof p.prompt === "string")) {
+            throw new Error("Invalid prompt format");
+          }
+
+          statusDiv.className = "";
+          statusDiv.textContent =
+            "Generating images... This may take a few minutes.";
+          imagesContainer.style.display = "block";
+          imageGrid.innerHTML = "";
+
+          // First send the POST request to initiate the process
+          const response = await fetch("/generate", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ prompts }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to start image generation");
+          }
+
+          const { sessionId } = await response.json();
+
+          // Create event source to receive updates
+          const eventSource = new EventSource(
+            `/status?sessionId=${sessionId}&prompts=${encodeURIComponent(
+              JSON.stringify(prompts)
+            )}`
+          );
+
+          eventSource.onmessage = function (event) {
+            const data = JSON.parse(event.data);
+
+            if (data.type === "image") {
+              // Add new image to the grid
+              const container = document.createElement("div");
+              container.className = "image-container";
+
+              const number = document.createElement("div");
+              number.className = "image-number";
+              number.textContent = `${data.index + 1}`;
+
+              const img = document.createElement("img");
+              img.src = `${data.imageUrl}&t=${new Date().getTime()}`;
+              img.alt = `Generated Image ${data.index + 1}`;
+
+              // Add loading indicator
+              img.onload = () => {
+                container.classList.add("loaded");
+              };
+
+              img.onerror = () => {
+                console.error(`Failed to load image ${data.index + 1}`);
+                container.classList.add("error");
+              };
+
+              container.appendChild(number);
+              container.appendChild(img);
+              imageGrid.appendChild(container);
+
+              statusDiv.textContent = `Generated image ${data.index + 1} of ${
+                prompts.length
+              }`;
+              console.log(
+                `Image ${data.index + 1} generated with seed: ${data.seed}`
+              );
+            } else if (data.type === "complete") {
+              // Show collage and update status
+              collageImg.src = `${data.collageUrl}&t=${new Date().getTime()}`;
+              statusDiv.className = "success";
+              statusDiv.textContent = "All images generated successfully!";
+              eventSource.close();
+            } else if (data.type === "error") {
+              eventSource.close();
+              throw new Error(data.message);
+            }
+          };
+
+          eventSource.onerror = function (error) {
+            eventSource.close();
+            statusDiv.className = "error";
+            statusDiv.textContent = "Error: Connection lost";
+          };
+        } catch (error) {
+          statusDiv.className = "error";
+          statusDiv.textContent = "Error: " + error.message;
+        }
+      }
+    </script>
+  </body>
+</html>
