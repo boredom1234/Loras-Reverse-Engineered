@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sketch Vision | AI Art Generator</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
       :root {
         --border: 4px solid #ff2e00;
@@ -24,12 +27,17 @@
       }
 
       body {
-        font-family: "Courier New", monospace;
+        font-family: 'Space Mono', monospace;
         background: var(--background);
         color: var(--text);
         padding: var(--spacing);
         line-height: 1.5;
         min-height: 100vh;
+        background-image: 
+          linear-gradient(to right, var(--container-bg) 1px, transparent 1px),
+          linear-gradient(to bottom, var(--container-bg) 1px, transparent 1px);
+        background-size: 50px 50px;
+        animation: gridMove 20s linear infinite;
       }
 
       textarea {
@@ -38,7 +46,7 @@
         background: var(--container-bg);
         color: var(--text);
         border: var(--border);
-        font-family: "Courier New", monospace;
+        font-family: 'Space Mono', monospace;
         font-size: 1.1rem;
         padding: 1rem;
         margin: var(--spacing) 0;
@@ -53,6 +61,7 @@
         background: var(--container-bg);
         font-weight: bold;
         text-transform: uppercase;
+        transition: all 0.3s ease;
       }
 
       .success {
@@ -78,11 +87,12 @@
         padding: 1rem;
         min-height: 200px;
         background: var(--container-bg);
-        transition: transform 0.2s;
+        transition: transform 0.3s, border-color 0.3s;
       }
 
       .image-container:hover {
-        transform: translateY(-4px);
+        animation: borderPulse 2s infinite;
+        transform: scale(1.02) rotate(-1deg);
       }
 
       .image-container img {
@@ -103,6 +113,7 @@
         border-bottom: var(--border);
         font-weight: 900;
         font-size: 1.2rem;
+        animation: counterSlide 0.5s ease-out forwards;
       }
 
       .collage-container {
@@ -119,20 +130,34 @@
 
       h1,
       h2 {
+        font-family: 'Space Mono', monospace;
         font-size: 5rem;
         text-transform: uppercase;
-        letter-spacing: -2px;
+        letter-spacing: -5px;
         margin: var(--spacing) 0;
         border-bottom: var(--border);
         padding-bottom: 1rem;
         color: var(--accent);
         font-weight: 900;
         text-shadow: 6px 6px 0 var(--text);
+        animation: glitch 4s infinite;
+        position: relative;
       }
 
       h2 {
         font-size: 3rem;
+        letter-spacing: -3px;
         text-shadow: 4px 4px 0 var(--text);
+      }
+
+      h1::before {
+        content: 'Sketch Vision';
+        position: absolute;
+        left: 2px;
+        top: 0;
+        color: var(--accent);
+        clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
+        animation: glitch 4s infinite reverse;
       }
 
       button {
@@ -146,13 +171,14 @@
         text-transform: uppercase;
         font-weight: 900;
         transition: all 0.2s;
-        font-family: "Courier New", monospace;
-        letter-spacing: 2px;
+        font-family: 'Space Mono', monospace;
+        letter-spacing: 0px;
       }
 
       button:hover {
+        animation: borderPulse 1s infinite;
+        transform: translateY(-4px) skew(-2deg);
         background: var(--hover-color);
-        transform: translateY(-4px);
         box-shadow: 0 4px 0 var(--text);
       }
 
@@ -168,6 +194,14 @@
       @media (max-width: 768px) {
         :root {
           --spacing: 1rem;
+        }
+
+        body {
+          background-size: 25px 25px;
+        }
+        
+        h1::before {
+          display: none;
         }
 
         h1 {
@@ -189,9 +223,89 @@
       button#stopButton:hover {
         background: #444;
       }
+
+      .github-link {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        transition: transform 0.2s;
+      }
+
+      .github-link:hover {
+        transform: scale(1.1);
+      }
+
+      .github-link img {
+        width: 32px;
+        height: 32px;
+        filter: invert(1); /* Makes the black GitHub logo white */
+      }
+
+      /* Glitch effect for the main title */
+      @keyframes glitch {
+        0% {
+          text-shadow: 6px 6px 0 var(--text);
+          transform: translate(0);
+        }
+        25% {
+          text-shadow: -6px -6px 0 var(--text);
+          transform: translate(1px, 1px);
+        }
+        50% {
+          text-shadow: 6px -6px 0 var(--text);
+          transform: translate(-1px, 1px);
+        }
+        75% {
+          text-shadow: -6px 6px 0 var(--text);
+          transform: translate(1px, -1px);
+        }
+        100% {
+          text-shadow: 6px 6px 0 var(--text);
+          transform: translate(0);
+        }
+      }
+
+      /* Border animation */
+      @keyframes borderPulse {
+        0% { border-color: var(--accent); }
+        50% { border-color: var(--text); }
+        100% { border-color: var(--accent); }
+      }
+
+      /* Background grid animation */
+      @keyframes gridMove {
+        0% { background-position: 0 0; }
+        100% { background-position: 50px 50px; }
+      }
+
+      /* Textarea focus animation */
+      textarea:focus {
+        animation: borderPulse 2s infinite;
+        outline: none;
+      }
+
+      /* Loading state for image containers */
+      @keyframes loadingPulse {
+        0% { opacity: 0.6; }
+        50% { opacity: 1; }
+        100% { opacity: 0.6; }
+      }
+
+      .image-container:not(.loaded) {
+        animation: loadingPulse 1.5s infinite;
+      }
+
+      /* Number counter animation */
+      @keyframes counterSlide {
+        0% { transform: translateY(-100%); opacity: 0; }
+        100% { transform: translateY(0); opacity: 1; }
+      }
     </style>
   </head>
   <body>
+    <a href="https://github.com/boredom1234/Loras-Reverse-Engineered" target="_blank" class="github-link" title="View on GitHub">
+      <img src="https://github.com/fluidicon.png" alt="GitHub Logo">
+    </a>
     <h1>Sketch Vision</h1>
     <textarea
       id="promptsInput"
