@@ -7,48 +7,62 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <style>
       :root {
-        --border: 2px solid #fff;
+        --border: 4px solid #FF2E00;
         --spacing: 2rem;
+        --background: #000000;
+        --text: #FFFFFF;
+        --accent: #FF2E00;
+        --container-bg: #111111;
+        --hover-color: #FF5733;
       }
 
       * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
+        font-weight: bold;
       }
 
       body {
-        font-family: "Helvetica", sans-serif;
-        background: #000;
-        color: #fff;
+        font-family: "Courier New", monospace;
+        background: var(--background);
+        color: var(--text);
         padding: var(--spacing);
         line-height: 1.5;
+        min-height: 100vh;
       }
 
       textarea {
         width: 100%;
         height: 200px;
-        background: #000;
-        color: #fff;
+        background: var(--container-bg);
+        color: var(--text);
         border: var(--border);
-        font-family: "Courier", monospace;
-        font-size: 1rem;
+        font-family: "Courier New", monospace;
+        font-size: 1.1rem;
         padding: 1rem;
         margin: var(--spacing) 0;
         resize: vertical;
+        font-weight: bold;
       }
 
       #status {
-        padding: 1rem;
+        padding: 1.5rem;
         border: var(--border);
         margin: var(--spacing) 0;
+        background: var(--container-bg);
+        font-weight: bold;
+        text-transform: uppercase;
       }
 
       .success {
-        border-color: #0f0;
+        border-color: #00FF66;
+        background: #001A0D;
       }
+      
       .error {
-        border-color: #f00;
+        border-color: #FF2E00;
+        background: #1A0D00;
       }
 
       .image-grid {
@@ -63,26 +77,23 @@
         border: var(--border);
         padding: 1rem;
         min-height: 200px;
-        background: #111;
+        background: var(--container-bg);
+        transition: transform 0.2s;
+      }
+
+      .image-container:hover {
+        transform: translateY(-4px);
       }
 
       .image-container::before {
-        content: "Loading...";
+        content: "LOADING...";
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        color: #fff;
-        opacity: 0.5;
-      }
-
-      .image-container.loaded::before {
-        display: none;
-      }
-
-      .image-container.error::before {
-        content: "Failed to load image";
-        color: #f00;
+        color: var(--accent);
+        opacity: 0.7;
+        font-weight: bold;
       }
 
       .image-container img {
@@ -96,11 +107,13 @@
         position: absolute;
         top: 0;
         left: 0;
-        background: #000;
-        padding: 0.5rem 1rem;
+        background: var(--accent);
+        color: var(--background);
+        padding: 0.5rem 1.5rem;
         border-right: var(--border);
         border-bottom: var(--border);
-        font-weight: bold;
+        font-weight: 900;
+        font-size: 1.2rem;
       }
 
       .collage-container {
@@ -117,35 +130,46 @@
 
       h1,
       h2 {
-        font-size: 3rem;
+        font-size: 5rem;
         text-transform: uppercase;
-        letter-spacing: -1px;
+        letter-spacing: -2px;
         margin: var(--spacing) 0;
         border-bottom: var(--border);
         padding-bottom: 1rem;
+        color: var(--accent);
+        font-weight: 900;
+        text-shadow: 6px 6px 0 var(--text);
       }
 
       h2 {
-        font-size: 2rem;
+        font-size: 3rem;
+        text-shadow: 4px 4px 0 var(--text);
       }
 
       button {
         width: 100%;
-        padding: 1rem;
-        font-size: 1.25rem;
-        background: #fff;
-        color: #000;
-        border: none;
+        padding: 2rem;
+        font-size: 2rem;
+        background: var(--accent);
+        color: var(--background);
+        border: var(--border);
         cursor: pointer;
         text-transform: uppercase;
-        font-weight: bold;
+        font-weight: 900;
         transition: all 0.2s;
+        font-family: "Courier New", monospace;
+        letter-spacing: 2px;
       }
 
       button:hover {
-        background: #000;
-        color: #fff;
-        outline: var(--border);
+        background: var(--hover-color);
+        transform: translateY(-4px);
+        box-shadow: 0 4px 0 var(--text);
+      }
+
+      button:active {
+        transform: translateY(0);
+        box-shadow: none;
       }
 
       p {
@@ -158,10 +182,12 @@
         }
 
         h1 {
-          font-size: 2rem;
+          font-size: 2.5rem;
+          text-shadow: 3px 3px 0 var(--text);
         }
         h2 {
-          font-size: 1.5rem;
+          font-size: 2rem;
+          text-shadow: 2px 2px 0 var(--text);
         }
       }
     </style>
