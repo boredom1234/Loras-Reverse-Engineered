@@ -7,13 +7,13 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <style>
       :root {
-        --border: 4px solid #FF2E00;
+        --border: 4px solid #ff2e00;
         --spacing: 2rem;
         --background: #000000;
-        --text: #FFFFFF;
-        --accent: #FF2E00;
+        --text: #ffffff;
+        --accent: #ff2e00;
         --container-bg: #111111;
-        --hover-color: #FF5733;
+        --hover-color: #ff5733;
       }
 
       * {
@@ -56,13 +56,13 @@
       }
 
       .success {
-        border-color: #00FF66;
-        background: #001A0D;
+        border-color: #00ff66;
+        background: #001a0d;
       }
-      
+
       .error {
-        border-color: #FF2E00;
-        background: #1A0D00;
+        border-color: #ff2e00;
+        background: #1a0d00;
       }
 
       .image-grid {
@@ -83,17 +83,6 @@
 
       .image-container:hover {
         transform: translateY(-4px);
-      }
-
-      .image-container::before {
-        content: "LOADING...";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        color: var(--accent);
-        opacity: 0.7;
-        font-weight: bold;
       }
 
       .image-container img {
@@ -190,6 +179,16 @@
           text-shadow: 2px 2px 0 var(--text);
         }
       }
+
+      button#stopButton {
+        margin-top: 1rem;
+        background: var(--container-bg);
+        border-color: var(--text);
+      }
+
+      button#stopButton:hover {
+        background: #444;
+      }
     </style>
   </head>
   <body>
@@ -210,7 +209,29 @@ a serene lake with reflections
     {"prompt": "a serene lake with reflections"}
 ]'
     ></textarea>
+    <div id="numImagesContainer" style="display: none; margin: var(--spacing) 0;">
+      <label for="numImages" style="display: block; margin-bottom: 0.5rem;">Number of Images (max 4):</label>
+      <input 
+        type="number" 
+        id="numImages" 
+        min="1" 
+        max="4" 
+        value="1" 
+        onchange="validateNumImages(this)"
+        oninput="validateNumImages(this)"
+        style="
+          width: 100%;
+          padding: 1rem;
+          font-size: 1.1rem;
+          background: var(--container-bg);
+          color: var(--text);
+          border: var(--border);
+          font-family: 'Courier New', monospace;
+        "
+      >
+    </div>
     <button onclick="generateImages()">Generate Images</button>
+    <button id="stopButton" onclick="stopGeneration()" style="display: none; background: #333;">Stop Generation</button>
     <div id="status"></div>
 
     <div id="imagesContainer" style="display: none">
@@ -224,28 +245,69 @@ a serene lake with reflections
     </div>
 
     <script>
+      let currentEventSource = null;
+
+      function checkPrompts() {
+        const promptsText = document.getElementById("promptsInput").value.trim();
+        const numImagesContainer = document.getElementById("numImagesContainer");
+        
+        let prompts;
+        try {
+          prompts = JSON.parse(promptsText);
+        } catch {
+          prompts = promptsText
+            .split("\n")
+            .map((line) => line.trim())
+            .filter((line) => line && !line.startsWith("--"))
+            .map((prompt) => ({ prompt }));
+        }
+
+        numImagesContainer.style.display = 
+          prompts.length === 1 ? "block" : "none";
+      }
+
+      document.getElementById("promptsInput").addEventListener("input", checkPrompts);
+
+      function validateNumImages(input) {
+        const value = parseInt(input.value);
+        if (value > 4) {
+          input.value = 4;
+        } else if (value < 1) {
+          input.value = 1;
+        }
+      }
+
       async function generateImages() {
         const statusDiv = document.getElementById("status");
         const imagesContainer = document.getElementById("imagesContainer");
         const imageGrid = document.getElementById("imageGrid");
         const collageImg = document.getElementById("collage");
+        const stopButton = document.getElementById("stopButton");
 
         try {
+          stopButton.style.display = "block";
+
           const promptsText = document
             .getElementById("promptsInput")
             .value.trim();
           let prompts;
 
-          // Try parsing as JSON first
           try {
             prompts = JSON.parse(promptsText);
           } catch {
-            // If not JSON, treat as line-by-line text
             prompts = promptsText
               .split("\n")
               .map((line) => line.trim())
-              .filter((line) => line && !line.startsWith("--")) // Skip empty lines and separator
+              .filter((line) => line && !line.startsWith("--"))
               .map((prompt) => ({ prompt }));
+          }
+
+          if (prompts.length === 1) {
+            const numImages = Math.min(
+              parseInt(document.getElementById("numImages").value) || 1,
+              4
+            );
+            prompts = Array(numImages).fill(prompts[0]);
           }
 
           // Validate prompts
@@ -278,14 +340,14 @@ a serene lake with reflections
 
           const { sessionId } = await response.json();
 
-          // Create event source to receive updates
-          const eventSource = new EventSource(
+          // Store event source in global variable
+          currentEventSource = new EventSource(
             `/status?sessionId=${sessionId}&prompts=${encodeURIComponent(
               JSON.stringify(prompts)
             )}`
           );
 
-          eventSource.onmessage = function (event) {
+          currentEventSource.onmessage = function (event) {
             const data = JSON.parse(event.data);
 
             if (data.type === "image") {
@@ -322,25 +384,45 @@ a serene lake with reflections
                 `Image ${data.index + 1} generated with seed: ${data.seed}`
               );
             } else if (data.type === "complete") {
-              // Show collage and update status
+              stopButton.style.display = "none";
               collageImg.src = `${data.collageUrl}&t=${new Date().getTime()}`;
               statusDiv.className = "success";
               statusDiv.textContent = "All images generated successfully!";
-              eventSource.close();
+              currentEventSource.close();
+              currentEventSource = null;
             } else if (data.type === "error") {
-              eventSource.close();
+              stopButton.style.display = "none";
+              currentEventSource.close();
+              currentEventSource = null;
               throw new Error(data.message);
             }
           };
 
-          eventSource.onerror = function (error) {
-            eventSource.close();
+          currentEventSource.onerror = function (error) {
+            stopButton.style.display = "none";
+            currentEventSource.close();
+            currentEventSource = null;
             statusDiv.className = "error";
             statusDiv.textContent = "Error: Connection lost";
           };
         } catch (error) {
+          stopButton.style.display = "none";
           statusDiv.className = "error";
           statusDiv.textContent = "Error: " + error.message;
+        }
+      }
+
+      function stopGeneration() {
+        if (currentEventSource) {
+          currentEventSource.close();
+          currentEventSource = null;
+          
+          const statusDiv = document.getElementById("status");
+          const stopButton = document.getElementById("stopButton");
+          
+          statusDiv.className = "";
+          statusDiv.textContent = "Generation stopped by user";
+          stopButton.style.display = "none";
         }
       }
     </script>
